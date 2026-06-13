@@ -1,0 +1,11 @@
+[Unit]
+Description=Auto-update telemt to the latest GitHub release
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Placeholders are substituted by `make install-timer HOST=<instance>`.
+WorkingDirectory=__DEPLOY_DIR__
+ExecStart=__COMMON_DIR__/update-telemt.sh __HOST__

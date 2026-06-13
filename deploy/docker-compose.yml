@@ -1,0 +1,85 @@
+# One compose for every host. Pick the instance with HOST=<name> (the Makefile
+# does this); it selects which deploy/.generated/<HOST>/ configs to mount.
+# Project name pinned so a deploy keeps its containers/volumes regardless of path.
+# Each server runs exactly one instance, so the fixed project name is fine.
+name: telemt
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8443:8443"
+    volumes:
+      - ./.generated/${HOST:?set HOST=<instance>}/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./.generated/${HOST}/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./nginx/html:/var/www/html:ro
+      - certbot-certs:/etc/letsencrypt:ro
+    # Periodically reload to pick up certbot-renewed certificates (zero-downtime).
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    networks:
+      - sni-net
+
+  telemt:
+    build:
+      context: ../common
+      args:
+        TELEMT_VERSION: ${TELEMT_VERSION:?set TELEMT_VERSION in the instance env}
+    container_name: telemt
+    restart: unless-stopped
+    network_mode: host
+    # NET_ADMIN: lets the chained host install its built-in nftables SYN limiter.
+    # Harmless on a direct host (no synlimit configured) — also silences the
+    # boot-time SYN-table cleanup warning.
+    cap_add:
+      - NET_ADMIN
+    extra_hosts:
+      - "nginx:127.0.0.1"
+    volumes:
+      - ./.generated/${HOST}/telemt.toml:/etc/telemt/telemt.toml:ro
+      - telemt-cache:/opt/telemt/cache
+      - telemt-tlsfront:/opt/telemt/tlsfront
+
+  certbot:
+    build:
+      context: ../common
+      dockerfile: certbot.Dockerfile
+    container_name: certbot
+    volumes:
+      - certbot-webroot:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+      - ./.generated/${HOST}/regru.ini:/etc/letsencrypt/regru.ini:ro
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - sni-net
+
+  # Hidden admin panel — see CLAUDE.md / README "Admin panel". On the sni-net
+  # bridge (8080 not on any host interface); nginx reverse-proxies a secret path
+  # to it. Reaches the host telemt API via host.docker.internal:9091. No docker
+  # socket by design (can read state / manage users, cannot restart telemt).
+  telemt-panel:
+    build:
+      context: ../common
+      dockerfile: panel.Dockerfile
+      args:
+        PANEL_VERSION: ${PANEL_VERSION:?set PANEL_VERSION in the instance env}
+    container_name: telemt-panel
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./.generated/${HOST}/panel.toml:/etc/telemt-panel/config.toml:ro
+    networks:
+      - sni-net
+
+volumes:
+  telemt-cache:
+  telemt-tlsfront:
+  certbot-webroot:
+  certbot-certs:
+
+networks:
+  sni-net:
+    driver: bridge

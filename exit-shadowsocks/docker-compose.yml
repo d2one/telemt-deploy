@@ -1,0 +1,13 @@
+# Shadowsocks egress exit. Runs on the direct host; the chained front routes its
+# Telegram DC connections here (encrypted, so RU DPI cannot see the dest IP).
+# Values come from .env in this directory (see .env.example).
+name: tg-socks-exit
+
+services:
+  tg-ss:
+    image: ghcr.io/shadowsocks/ssserver-rust:latest
+    container_name: tg-ss
+    restart: unless-stopped
+    command: ssserver -s "0.0.0.0:${SS_PORT}" -m ${SS_METHOD} -k "${SS_PASSWORD}"
+    ports:
+      - "${SS_PORT}:${SS_PORT}/tcp"

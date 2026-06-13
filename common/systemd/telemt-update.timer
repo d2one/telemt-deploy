@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly telemt auto-update check
+
+[Timer]
+# Weekly, Monday 04:00 local time; catch up if the machine was off.
+OnCalendar=Mon *-*-* 04:00:00
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

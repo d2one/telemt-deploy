@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!--
+  Masking storefront placeholder. telemt fronts non-proxy TLS to this nginx so the
+  server looks like an ordinary HTTPS site. REPLACE this with a real, plausible
+  page of your own (a small shop, blog, landing page) — the more ordinary, the
+  better the camouflage. Keep it static.
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Northwind Supplies — Wholesale Catalog</title>
+    <style>
+        :root { --bg:#f5f6f8; --fg:#1c2430; --accent:#2b6cb0; }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+               background:var(--bg); color:var(--fg); line-height:1.6; }
+        header { background:#fff; border-bottom:1px solid #e3e6ea; padding:18px 24px; }
+        .brand { font-weight:700; font-size:1.25rem; }
+        .brand span { color:var(--accent); }
+        main { max-width:880px; margin:0 auto; padding:48px 24px; }
+        h1 { font-size:2rem; margin:0 0 .4em; }
+        .lead { font-size:1.1rem; color:#48566a; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+                gap:20px; margin-top:36px; }
+        .card { background:#fff; border:1px solid #e3e6ea; border-radius:10px; padding:20px; }
+        .card h3 { margin:.2em 0 .4em; }
+        footer { text-align:center; color:#8a96a6; padding:32px 24px; font-size:.9rem; }
+    </style>
+</head>
+<body>
+    <header><div class="brand">Northwind <span>Supplies</span></div></header>
+    <main>
+        <h1>Wholesale parts &amp; supplies</h1>
+        <p class="lead">Reliable sourcing for workshops and small businesses.
+           Request a quote and we'll get back to you within one business day.</p>
+        <div class="grid">
+            <div class="card"><h3>Catalog</h3><p>Thousands of items in stock, updated weekly.</p></div>
+            <div class="card"><h3>Shipping</h3><p>Tracked delivery to most regions.</p></div>
+            <div class="card"><h3>Support</h3><p>Mon&ndash;Fri, business hours.</p></div>
+        </div>
+    </main>
+    <footer>&copy; 2024&ndash;2026 Northwind Supplies. All rights reserved.</footer>
+</body>
+</html>

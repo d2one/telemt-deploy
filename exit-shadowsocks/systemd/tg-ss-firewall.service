@@ -1,0 +1,15 @@
+[Unit]
+Description=Lock Shadowsocks exit port to the front server
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Wait for Docker to (re)create the DOCKER-USER chain, then apply the allowlist.
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do iptables -L DOCKER-USER -n >/dev/null 2>&1 && exit 0; sleep 1; done'
+# __EXIT_DIR__ is substituted at install time (see this dir's README).
+ExecStart=__EXIT_DIR__/firewall.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
