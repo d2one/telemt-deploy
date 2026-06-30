@@ -40,6 +40,9 @@ mkdir -p "$GEN"
 # GENERATED from instances/$HOST.env by render.sh — DO NOT EDIT (edit the .env).
 [general]
 use_middle_proxy = false
+# RST instead of FIN for unauthenticated connections (scanners, DPI probes) —
+# frees kernel sockets instantly; authenticated sessions close gracefully.
+rst_on_close = "errors"
 
 [general.modes]
 classic = false
@@ -61,7 +64,9 @@ whitelist = ["127.0.0.0/8", "172.16.0.0/12"]
 auth_header = "Bearer $API_TOKEN"
 EOF
 
-  # Per-IP SYN limiter — only the censored (chained) host needs burst staggering.
+  # Per-IP SYN limiter (V2 two-tier) — only the censored (chained) host needs
+  # burst staggering. V2 adds a separate iOS bucket (TTL<65, pktlen=64) with
+  # higher burst to accommodate iOS Telegram's aggressive reconnect pattern.
   if [ "$EGRESS" = chained ]; then
     cat <<EOF
 
@@ -69,9 +74,12 @@ EOF
 ip = "0.0.0.0"
 port = 443
 synlimit = "nftables"
-synlimit_seconds = 1
-synlimit_hitcount = 1
-synlimit_burst = 2
+synlimit_seconds = 60
+synlimit_hitcount = 48
+synlimit_burst = 1
+synlimit_ios_seconds = 1
+synlimit_ios_hitcount = 12
+synlimit_ios_burst = 24
 EOF
   fi
 
@@ -79,6 +87,9 @@ EOF
 
 [censorship]
 tls_domain = "$DOMAIN"
+# Reject unknown SNI with TLS alert (like nginx ssl_reject_handshake) instead of
+# silent drop — looks like a normal web server to DPI active probes.
+unknown_sni_action = "reject_handshake"
 mask_host = "127.0.0.1"
 mask_port = 8443
 EOF

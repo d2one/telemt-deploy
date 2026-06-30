@@ -30,7 +30,7 @@ RUN apt-get update && \
 # it also needs cap_add: NET_ADMIN at runtime. nftables is the backend we use;
 # iptables/ip6tables kept for the alternative synlimit="iptables" backend.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends nftables iptables && \
+    apt-get install -y --no-install-recommends nftables iptables conntrack && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/telemt/cache /opt/telemt/tlsfront /etc/telemt
