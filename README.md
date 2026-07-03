@@ -31,8 +31,8 @@ storefront. What happens on `:443`, per host:
   client :443  (faketls, SNI = your domain)
        │
        ▼
-  ┌────────────────────────────┐   chained host only: a per-IP nftables SYN limiter
-  │ telemt  (:443, net=host)   │   (1/s/IP) staggers Telegram's first connection
+  ┌────────────────────────────┐   chained/opt-in direct: per-IP nftables SYN limiter
+  │ telemt  (:443, net=host)   │   staggers Telegram's first connection
   └──┬──────────────────────┬──┘   burst to dodge RU-TSPU throttling
      │ valid faketls         │ anything else (browser, scanner):
      │ secret  → PROXY       │ TLS-fronting → mask relay
@@ -95,8 +95,9 @@ so containers/volumes survive path changes.
 `regru.ini` are **generated** — never hand-edited. `render.sh` reads
 `instances/<host>.env` and writes them to `deploy/.generated/<host>/` (gitignored),
 which docker compose mounts. `EGRESS=direct|chained` toggles the Shadowsocks
-upstream and the SYN limiter. So one instance file is the single source of truth
-for a host, and the only place secrets live.
+upstream; `EGRESS=chained` always enables the SYN limiter, while direct hosts can
+opt in with `SYNLIMIT=1`. So one instance file is the single source of truth for a
+host, and the only place secrets live.
 
 ## First-time setup
 

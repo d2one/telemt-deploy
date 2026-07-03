@@ -64,22 +64,23 @@ whitelist = ["127.0.0.0/8", "172.16.0.0/12"]
 auth_header = "Bearer $API_TOKEN"
 EOF
 
-  # Per-IP SYN limiter (V2 two-tier) — only the censored (chained) host needs
-  # burst staggering. V2 adds a separate iOS bucket (TTL<65, pktlen=64) with
-  # higher burst to accommodate iOS Telegram's aggressive reconnect pattern.
-  if [ "$EGRESS" = chained ]; then
+  # Per-IP SYN limiter (V2 two-tier). Chained hosts always need burst staggering;
+  # direct hosts can opt in with SYNLIMIT=1 when RU clients hit TSPU throttling.
+  # V2 adds a separate iOS bucket (TTL<65, pktlen=64) with higher burst to
+  # accommodate iOS Telegram's aggressive reconnect pattern.
+  if [ "$EGRESS" = chained ] || [ "${SYNLIMIT:-0}" = 1 ]; then
     cat <<EOF
 
 [[server.listeners]]
 ip = "0.0.0.0"
 port = 443
 synlimit = "nftables"
-synlimit_seconds = 60
-synlimit_hitcount = 48
-synlimit_burst = 1
-synlimit_ios_seconds = 1
-synlimit_ios_hitcount = 12
-synlimit_ios_burst = 24
+synlimit_seconds = ${SYNLIMIT_SECONDS:-60}
+synlimit_hitcount = ${SYNLIMIT_HITCOUNT:-48}
+synlimit_burst = ${SYNLIMIT_BURST:-1}
+synlimit_ios_seconds = ${SYNLIMIT_IOS_SECONDS:-1}
+synlimit_ios_hitcount = ${SYNLIMIT_IOS_HITCOUNT:-12}
+synlimit_ios_burst = ${SYNLIMIT_IOS_BURST:-24}
 EOF
   fi
 

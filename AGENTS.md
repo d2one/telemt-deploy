@@ -1,6 +1,7 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex and other coding agents when working with
+this repository.
 
 ## Project Overview
 
@@ -29,7 +30,8 @@ direct host (`exit-shadowsocks/`), which encrypts the destination. For `chained`
 `render.sh` emits into the generated `telemt.toml`: `tls_fetch_scope="mask"`, a
 `direct` upstream scoped `"mask"` (keeps the mask fetch/relay off the tunnel), a
 `shadowsocks` upstream (catches DC connections, scope=None), and the SYN limiter.
-`EGRESS=direct` omits all of that — it reaches Telegram directly.
+`EGRESS=direct` omits the Shadowsocks chain and reaches Telegram directly; it only
+gets the SYN limiter when explicitly opted in with `SYNLIMIT=1`.
 
 ## Repo layout
 
@@ -111,17 +113,24 @@ retries. **The fix is a per-IP new-connection rate-limit** (≈1 accepted SYN/se
 that staggers the burst so each handshake gets through.
 
 This uses **telemt's built-in per-listener SYN limiter** (telemt ≥ 3.4.17).
-`render.sh` emits it for `EGRESS=chained` into the generated `telemt.toml`
-`[[server.listeners]]` (`synlimit="nftables"`, `synlimit_seconds=1`,
-`synlimit_hitcount=1`, `synlimit_burst=2`). telemt installs/reconciles the rule
-itself (its own isolated nft table — off iptables) and removes it on graceful
-shutdown. Needs `network_mode: host` + `NET_ADMIN` (compose grants `NET_ADMIN` to
-telemt on every host) and the `nftables`/`iptables` binaries the image ships
+`render.sh` emits it for every `EGRESS=chained` host, and for `EGRESS=direct` only
+when the instance opts in with `SYNLIMIT=1`. The generated `telemt.toml`
+`[[server.listeners]]` defaults are `synlimit_seconds=60`,
+`synlimit_hitcount=48`, `synlimit_burst=1`, plus the iOS bucket
+`synlimit_ios_seconds=1`, `synlimit_ios_hitcount=12`,
+`synlimit_ios_burst=24`; override them per host with `SYNLIMIT_SECONDS`,
+`SYNLIMIT_HITCOUNT`, `SYNLIMIT_BURST`, `SYNLIMIT_IOS_SECONDS`,
+`SYNLIMIT_IOS_HITCOUNT`, and `SYNLIMIT_IOS_BURST`. For harsher TSPU bursts,
+set both buckets toward `1/1/1`. telemt installs/reconciles the rule itself (its
+own isolated nft table — off iptables) and removes it on graceful shutdown. Needs
+`network_mode: host` + `NET_ADMIN` (compose grants `NET_ADMIN` to telemt on every
+host) and the `nftables`/`iptables` binaries the image ships
 (`common/Dockerfile`). Confirm: `nft list ruleset | grep -iA8 telemt` (drop counter
-rising = staggering). Tune `synlimit_burst` toward 1 if TSPU still flags the burst.
+rising = staggering). Tune the `SYNLIMIT_*` env values if TSPU still flags the burst.
 
-`EGRESS=direct` renders no synlimit, so telemt installs nothing; because compose
-still grants `NET_ADMIN`, the boot-time SYN-table cleanup succeeds silently (no WARN).
+`EGRESS=direct` without `SYNLIMIT=1` renders no synlimit, so telemt installs
+nothing; because compose still grants `NET_ADMIN`, the boot-time SYN-table cleanup
+succeeds silently (no WARN).
 
 Dead ends ruled out along the way (don't re-chase): `client_mss="tspu"` MSS-92
 fragmentation did nothing; the "low-reputation SNI" theory was wrong — switching
