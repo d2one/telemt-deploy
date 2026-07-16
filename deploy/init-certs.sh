@@ -15,6 +15,7 @@ ENVF="$ROOT/instances/$HOST.env"
 "$HERE/render.sh" "$HOST"
 set -a; . "$ENVF"; set +a
 export HOST
+cd "$HERE"
 compose() { docker compose "$@"; }
 
 echo "==> Creating dummy certificate for nginx bootstrap (${DOMAIN})..."
@@ -29,9 +30,17 @@ compose run --rm --entrypoint "" certbot sh -c "
 echo "==> Starting nginx with dummy cert..."
 compose up -d nginx
 
+echo "==> Removing dummy certificate before real issuance..."
+compose run --rm --entrypoint "" certbot sh -c "
+  rm -rf /etc/letsencrypt/live/${DOMAIN} \
+         /etc/letsencrypt/archive/${DOMAIN} \
+         /etc/letsencrypt/renewal/${DOMAIN}.conf
+"
+
 echo "==> Requesting real certificate via DNS-01 (reg.ru)..."
 compose run --rm --entrypoint "" certbot \
-  certbot certonly -a dns -d "${DOMAIN}" --email "${CERT_EMAIL}" --agree-tos --no-eff-email -n
+  certbot certonly -a dns -d "${DOMAIN}" --email "${CERT_EMAIL}" \
+    --agree-tos --no-eff-email -n --dns-propagation-seconds 300
 
 echo "==> Restarting nginx with real cert..."
 compose restart nginx

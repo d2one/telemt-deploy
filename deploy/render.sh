@@ -151,5 +151,6 @@ cat > "$GEN/regru.ini" <<EOF
 dns_username = $REGRU_USER
 dns_password = $REGRU_PASS
 EOF
+chmod 600 "$GEN/regru.ini"
 
 echo "render: wrote $GEN/{telemt.toml,panel.toml,nginx.conf,.htpasswd,regru.ini}  (EGRESS=$EGRESS)"
