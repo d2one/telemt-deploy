@@ -13,6 +13,7 @@ exit-shadowsocks/.env
 # Editor / local tooling
 .vscode/
 .claude/
+.idea
 
 # Masking storefront (may carry your brand) — ship the generic .example only
 deploy/nginx/html/index.html

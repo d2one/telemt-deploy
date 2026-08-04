@@ -48,7 +48,8 @@ init: require-host
 
 cert: render
 	@$(COMPOSE) run --rm --entrypoint "" certbot \
-		certbot certonly -a dns -d "$$DOMAIN" --agree-tos --no-eff-email --email "$$CERT_EMAIL" -n
+		certbot certonly -a dns -d "$$DOMAIN" --agree-tos --no-eff-email --email "$$CERT_EMAIL" -n \
+			--dns-propagation-seconds 300
 	@$(COMPOSE) restart nginx
 cert-renew: require-host
 	@$(COMPOSE) run --rm --entrypoint "" certbot certbot renew
